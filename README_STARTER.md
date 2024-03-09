@@ -84,7 +84,7 @@ The backend API uses a fixed set of cached search results and is limited to a pa
 
 ## Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/vtcongit551999/reactnd-project-myreads). You can find more information on how to perform common tasks [here](https://github.com/vtcongit551999/reactnd-project-myreads).
+This project was bootstrapped with [Create React App](https://github.com/vtcongit551999/reactnd-project-myreads). You can find more information on how to perform common tasks [here](https://github.com/vtcongit551999/reactnd-project-myreads/README_STARTER.md).
 
 ## Contributing
 
