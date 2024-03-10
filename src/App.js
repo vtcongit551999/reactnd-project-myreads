@@ -1,55 +1,89 @@
-import React, { useState, useEffect } from "react";
-import * as BooksAPI from "./BooksAPI";
-import "./App.css";
-import Bookshelf from "./Component/Book/Bookshelf";
+import React from 'react'
+import * as BooksAPI from './BooksAPI'
+import { Route } from 'react-router-dom';
+import SearchBook from './Component/SearchBook/SearchBook';
+import './App.css'
+import SearchIcon from '@material-ui/icons/Search'; 
+import {Link} from 'react-router-dom';
+import BookList from './Component/BookList/BookList';
 
-import { useHistory } from "react-router-dom";
+class BooksApp extends React.Component {
 
-const bookshelves = [
-  { title: "Currently Reading", shelfName: "currentlyReading" },
-  { title: "Want to Read", shelfName: "wantToRead" },
-  { title: "Read", shelfName: "read" }
-];
+  state = {
+    books: [],
+    allBooks: [],
+    message: '',
+    initialshelf: 'none'
+  }
 
-function App() {
-  const [books, setBooks] = useState([]);
-  const history = useHistory();
+  componentDidMount() {
+    this.fetchData();
+  }
 
-  useEffect(() => {
-    BooksAPI.getAll().then(booksFromApi => {
-      setBooks(booksFromApi);
-    });
-  }, []);
+  fetchData() {
+    BooksAPI.getAll()
+      .then((data) => {
+        console.log('date', data);
+        this.setState(() => {
+          return { books: data }
+        });
+      });
+  };
 
-  return (
-    <div className="app">
-      <div className="list-books">
-        <div className="list-books-title">
-          <h1>MyReads</h1>
-        </div>
-        <div className="list-books-content">
-          <div>
-            {bookshelves.map((bookshelf, index) => (
-              <Bookshelf
-                key={index}
-                title={bookshelf.title}
-                books={
-                  books &&
-                  books.filter(
-                    book => book && book.shelf === bookshelf.shelfName
-                  )
-                }
-                setBooks={setBooks}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="open-search">
-          <button onClick={() => history.push("/search")}>Add a book</button>
-        </div>
+  updateSheief = (book, shelf) => {
+    BooksAPI.update(book, shelf)
+      .then((res) => {
+        this.fetchData();
+      });
+  };
+
+  updateQuery = (query) => {
+    if (query === '') return
+    BooksAPI.search(query).then((res) => {
+      console.log(res);
+      if (res.error) {
+        this.setState({ allBooks: [] });
+        console.log(res.error);
+        this.setState({ message: 'Can not find your books' });
+      } else {
+        this.setState({ message: '' });
+        this.setState({ allBooks: res });
+      }
+    })
+  }
+
+  render() {
+    return (
+      <div className="app">
+        <Route path="/" exact component={() => {
+          return (
+            <div>
+            <BookList currentBooks={this.state.books} updateSheief={this.updateSheief} />
+            <div className="open-search">
+              <Link to="/search">
+                <button><SearchIcon style={{ color: 'white' }} /></button>
+              </Link>
+            </div>
+            </div>
+          )
+        }}
+        />
+        <Route
+          path="/search"
+          render={() =>
+            <SearchBook
+              currentBooks={this.state.books}
+              allBooks={this.state.allBooks}
+              updateSheief={this.updateSheief}
+              updateQuery={this.updateQuery}
+              message={this.state.message}
+              initialshelf={this.state.initialshelf}
+            />
+          }
+        />
       </div>
-    </div>
-  );
-};
+    );
+  }
+}
 
-export default App;
+export default BooksApp
