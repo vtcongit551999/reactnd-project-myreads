@@ -1,53 +1,55 @@
-import React from 'react'
-import { Switch, Route } from 'react-router-dom'
-import SearchBooks from './Component/SearchBook/SearchBooks';
-import ListBooks from './Component/ListBook/ListBooks';
-import NoMatch from './NoMatch';
-import * as BooksAPI from './BooksAPI'
-import './App.css'
+import React, { useState, useEffect } from "react";
+import * as BooksAPI from "./BooksAPI";
+import "./App.css";
+import Bookshelf from "./Component/Book/Bookshelf";
 
-class BooksApp extends React.Component {
+import { useHistory } from "react-router-dom";
 
-  state = {
-    books: []
-  }
+const bookshelves = [
+  { title: "Currently Reading", shelfName: "currentlyReading" },
+  { title: "Want to Read", shelfName: "wantToRead" },
+  { title: "Read", shelfName: "read" }
+];
 
-  componentDidMount() {
-    BooksAPI.getAll()
-      .then(books => this.setState({books}));
-  }
+function App() {
+  const [books, setBooks] = useState([]);
+  const history = useHistory();
 
-  updateBook = (book, shelf) => {
-    book.shelf = shelf;
-    BooksAPI.update(book, shelf)
-      .then(() => this.setState(state => ({
-          books: state.books.filter((b) => b.id !== book.id).concat(book),
-      })));
-  }
+  useEffect(() => {
+    BooksAPI.getAll().then(booksFromApi => {
+      setBooks(booksFromApi);
+    });
+  }, []);
 
-  render() {
-    const { books } = this.state;
-
-    return (
-      <div className="app">
-        <Switch>
-          <Route exact path="/" render={() => (
-            <ListBooks
-              books={books}
-              onChangeBookShelf={this.updateBook}
-            />
-          )} />
-          <Route path="/search" render={() => (
-            <SearchBooks
-              allBooks={books}
-              onChangeBookShelf={this.updateBook}
-            />
-          )} />
-          <Route component={NoMatch}/>
-        </Switch>
+  return (
+    <div className="app">
+      <div className="list-books">
+        <div className="list-books-title">
+          <h1>MyReads</h1>
+        </div>
+        <div className="list-books-content">
+          <div>
+            {bookshelves.map((bookshelf, index) => (
+              <Bookshelf
+                key={index}
+                title={bookshelf.title}
+                books={
+                  books &&
+                  books.filter(
+                    book => book && book.shelf === bookshelf.shelfName
+                  )
+                }
+                setBooks={setBooks}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="open-search">
+          <button onClick={() => history.push("/search")}>Add a book</button>
+        </div>
       </div>
-    )
-  }
-}
+    </div>
+  );
+};
 
-export default BooksApp
+export default App;

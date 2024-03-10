@@ -1,87 +1,79 @@
-import React, { Component } from 'react'
-import { Link } from 'react-router-dom';
-import _ from 'lodash';
-import * as BooksAPI from '../../BooksAPI';
-import BooksComponent from '../Book/BooksComponent';
+import React, { useState, useEffect } from "react";
 
-class SearchBooks extends Component {
+import { useHistory } from "react-router-dom";
 
-  state =  {
-    query: '',
-    books: []
-  }
+import Book from "../Book/Book";
 
-  searchBooks = _.debounce(() => {
-    const q = this.state.query.trim();
+import * as BooksAPI from "../../BooksAPI";
 
-    if( q ) {
-      BooksAPI.search(q)
-        .then(books => { 
-          if ( !books.error ) {
-            this.mergeBooks(books)
-          } else {
-            this.setState({ books: [] });
-          }
-        })
-    } else {
-      this.setState({ books: [] });
+function SearchBook(props) {
+  const [searchText, setSearchText] = useState("");
+  const [searchedBooks, setSearchedBooks] = useState([]);
+  const history = useHistory();
+
+  const handleSearchTextChange = event => {
+    if (searchText.length !== 0) {
+      BooksAPI.search(searchText).then(searchedBooks => {
+        if (!searchedBooks.error) {
+          BooksAPI.getAll().then(myBooks => {
+            setSearchedBooks(setDefaultShelves(searchedBooks, myBooks));
+          });
+        } else {
+          setSearchedBooks([]);
+        }
+      });
+    } else if (searchText.length === 0) {
+      setSearchedBooks([]);
     }
-  }, 400);
+  };
 
-  updateQuery = query => this.setState({ query }, this.searchBooks)
-
-  updateBook = (book, shelf) => {
-    book.shelf = shelf;
-    this.setState(state => ({
-      books: state.books.map((b) => b.id === book.id ? book : b)
-    }));
-    this.props.onChangeBookShelf(book, shelf);
-  }
-
-  mergeBooks = (books) => {
-    const { allBooks } = this.props;
-
-    const booksLength = books.length;
-    const allBooksLength = allBooks.length;
-    for (let i = 0; i < booksLength; i++) {
-      for (let j = 0; j < allBooksLength; j++) {
-        if( books[i].id === allBooks[j].id ) {
-          books[i].shelf = allBooks[j].shelf;
-          break;
+  const setDefaultShelves = (searchedBooksLocal, myBooks) => {
+    return searchedBooksLocal.map(book => {
+      for (let i = 0; i < myBooks.length; i++) {
+        if (myBooks[i].id === book.id) {
+          return { ...book, shelf: myBooks[i].shelf };
         }
       }
-    };
-    this.setState({ books });
-  }
+      return { ...book, shelf: "none" };
+    });
+  };
 
-  render() {
-    return (
-      <div className="search-books">
-        <div className="search-books-bar">
-          <Link
-            className="close-search"
-            to="/"
-          >Close</Link>
-          <div className="search-books-input-wrapper">
+  useEffect(() => {
+    handleSearchTextChange();
+  }, [searchText]);
 
-            <input
-              type="text"
-              placeholder="Search by title or author"
-              value={this.state.query}
-              onChange={(e) => this.updateQuery(e.target.value)}
-            />
-
-          </div>
-        </div>
-        <div className="search-books-results">
-          <BooksComponent
-            books={this.state.books}
-            onChangeBookShelf={this.updateBook}
+  return (
+    <div className="search-books">
+      <div className="search-books-bar">
+        <button className="close-search" onClick={() => history.push("/")}>
+          Close
+        </button>
+        <div className="search-books-input-wrapper">
+          <input
+            type="text"
+            placeholder="Search by title or author"
+            onChange={event => setSearchText(event.target.value)}
           />
         </div>
       </div>
-    );
-  }
-}
+      <div className="search-books-results">
+        <ol className="books-grid">
+          {searchedBooks &&
+            searchedBooks.map((book, index) => (
+              <Book
+                key={index}
+                title={book.title}
+                authors={book.authors}
+                imageUrl={book.imageLinks && book.imageLinks.thumbnail}
+                bookshelf={book.shelf}
+                book={book}
+                isSearching
+              />
+            ))}
+        </ol>
+      </div>
+    </div>
+  );
+};
 
-export default SearchBooks;
+export default SearchBook;
